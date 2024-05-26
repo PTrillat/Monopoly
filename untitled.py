@@ -1,164 +1,56 @@
-def strRed(skk):
-    return "\033[91m{}\033[00m".format(skk)
+class colours:
+    '''Colors class:reset all colours with colours.reset
+    two sub classes fg for foreground and bg for background
+    use as colours.subclass.colorname i.e. colours.fg.red or colours.bg.green
+    The generic bold, disable, underline, reverse, strike through, and invisible
+    work with the main class i.e. colours.bold'''
+    reset = '\033[0m'
+    bold = '\033[01m'
+    disable = '\033[02m'
+    underline = '\033[04m'
+    reverse = '\033[07m'
+    strikethrough = '\033[09m'
+    invisible = '\033[08m'
 
+    class fg:
+        black = '\033[30m'
+        red = '\033[31m'
+        green = '\033[32m'
+        orange = '\033[33m'
+        blue = '\033[34m'
+        purple = '\033[35m'
+        cyan = '\033[36m'
+        lightgrey = '\033[37m'
+        darkgrey = '\033[90m'
+        lightred = '\033[91m'
+        lightgreen = '\033[92m'
+        yellow = '\033[93m'
+        lightblue = '\033[94m'
+        pink = '\033[95m'
+        lightcyan = '\033[96m'
+ 
+    class bg:
+        black = '\033[40m'
+        red = '\033[41m'
+        green = '\033[42m'
+        orange = '\033[43m'
+        blue = '\033[44m'
+        purple = '\033[45m'
+        cyan = '\033[46m'
+        lightgrey = '\033[47m'
 
-def strGreen(skk):
-    return "\033[92m{}\033[00m".format(skk)
+class NonSolvable(Exception):
+    pass
 
+class AllerEnPrison(Exception):
+    pass
 
-def strYellow(skk):
-    return "\033[93m{}\033[00m".format(skk)
+class ResterEnPrison(Exception):
+    pass
 
-
-def strLightPurple(skk):
-    return "\033[94m{}\033[00m".format(skk)
-
-
-def strPurple(skk):
-    return "\033[95m{}\033[00m".format(skk)
-
-
-def strCyan(skk):
-    return "\033[96m{}\033[00m".format(skk)
-
-
-def strLightGray(skk):
-    return "\033[97m{}\033[00m".format(skk)
-
-
-def strBlack(skk):
-    return "\033[98m{}\033[00m".format(skk)
-
+imprimer = lambda *args, **kargs : None # print # 
 
 import random
-
-
-class Joueur(object):
-    def __init__(self, pseudo, seuil):
-        self.seuil = seuil
-        self.pseudo = pseudo
-        self.solvable = True  # n'a pas encore perdu
-        self.argent = 1500
-        self.position = Plateau.DEPART
-        self.chance_sortie = False
-        self.caisse_sortie = False
-        self.portefeuille = []
-        self.doubles_de_suite = 0
-
-    def resumer(self, plateau=None, details=False):
-        chaine = (
-            strGreen(self.pseudo)
-            + " débute son tour avec "
-            + strYellow(str(self.argent) + "€")
-            + " en "
-        )
-        if plateau:
-            chaine += strPurple(plateau.cases[self.position].nom)
-        else:
-            chaine += "position " + str(self.position)
-        if details:
-            if len(self.portefeuille) > 0:
-                chaine += " avec :\n\t{:<30} | {:>4} | {:^6} |".format(
-                    "nom", "prix", "niveau"
-                )
-                for achetable in self.portefeuille:
-                    chaine += "\n\t" + str(achetable)
-        return chaine
-
-    def compter_doubles(self, double):
-        self.doubles_de_suite = self.doubles_de_suite + 1 if double else 0
-        return self.doubles_de_suite
-
-    def reposer_chance(self, plateau):
-        self.chance_sortie = False
-        plateau.chance.append(Chance.SORTIE_DE_PRISON)
-
-    def reposer_caisse(self, plateau):
-        self.caisse_sortie = False
-        plateau.caisse.append(Caisse.SORTIE_DE_PRISON)
-
-    def nettoyer(self, plateau):
-        if self.chance_sortie:
-            self.reposer_chance(plateau)
-        if self.caisse_sortie:
-            self.reposer_caisse(plateau)
-        for achetable in self.portefeuille:
-            achetable.nettoyer()
-
-    def aller(self, position, plateau=None):
-        quotient, self.position = divmod(position, Plateau.TOTAL)
-        # if plateau:
-            # fmt: off
-            # print("\t" + strGreen(self.pseudo) + " arrive " + strPurple(plateau.cases[self.position].nom))
-            # fmt: on
-        if quotient != 0:
-            self.argent += 200
-            # if plateau:
-                # fmt: off
-                # print("\t" + strGreen(self.pseudo) + " touche " + strYellow("200€") + " de la case départ")
-                # fmt: on
-
-    def taxer(self, montant, plateau=None):  # le montant peut-être négatif
-        self.argent -= montant
-        # if plateau:
-            # fmt: off
-            # print("\t" + strGreen(self.pseudo) + " paye " + strYellow(str(montant) + "€")) + " et tombe à " + strYellow(str(self.argent) + "€")
-            # fmt: on
-        if self.argent < 0:
-            # TODO : ajouter l'hypothèque, la vente à la banque, aux enchères...
-            montant -= self.argent  # on ne peut payer que ce qu'on a
-            self.solvable = False
-            raise AssertionError("pas solvable")
-        return montant  # montant réellement payé
-
-    def aller_en_prison(self):
-        # print("\t" + strGreen(self.pseudo) + " va en " + strRed("PRISON"))
-        self.position = Plateau.PRISON
-        self.tours_en_prison = 1
-        self.doubles_de_suite = 0
-
-    def sortir_de_prison(self):
-        # print("\t" + strGreen(self.pseudo) + " sort en prison")
-        self.position = Plateau.SIMPLE_VISITE
-        self.tours_en_prison = 0
-        self.doubles_de_suite = 0
-
-    def payer(self, montant, joueur):
-        if joueur is not self and joueur.solvable:
-            joueur.argent += self.taxer(montant)
-
-    def payer_loyer(self, achetable, doubler=False):
-        if achetable.bailleur is None or achetable.bailleur is self:
-            return False
-        montant = achetable.loyer() * (1 + doubler)
-        self.payer(montant, achetable.bailleur)
-        # fmt: off
-        # print("\t" + strGreen(self.pseudo) + " paye un loyer de " + str(montant) + "€ à " + strRed(achetable.bailleur.pseudo))
-        # fmt: on
-        return True
-
-    def acheter(self, achetable):
-        # print("\t" + strGreen(self.pseudo) + " achète " + strPurple(achetable.nom))
-        self.taxer(achetable.prix)
-        achetable.bailleur = self
-        self.portefeuille.append(achetable)
-
-    def taxer_constructions(self, maison, hotel):
-        montant = 0
-        for achetable in self.portefeuille:
-            if isinstance(achetable, Terrain):
-                if achetable.construction == 5:  # TODO : HOTEL
-                    montant += hotel
-                else:
-                    montant += montant * achetable.construction
-        self.taxer(montant)
-
-    def strategie_prison(self):
-        return True, True, False
-
-    def strategie_achat(self, achetable):
-        return random.random() < self.seuil
-
 
 class Case(object):
     def __init__(self, nom):
@@ -198,37 +90,130 @@ class Gare(Achetable):
 
 
 class Compagnie(Achetable):
-    def __init__(self, nom, groupe, des):
+    def __init__(self, nom, groupe, somme):
         Achetable.__init__(self, "Compagnie d'" + nom, groupe, 150)
-        self.des = des  # fonction donnant la valeur des des (vient du plateau)
+        self.somme = somme  # fonction donnant la somme des dés (vient du plateau)
 
     def loyer(self):
-        return self.des() * (10 if self.membre_d_un_monopole() else 4)
+        return self.somme() * (10 if self.membre_d_un_monopole() else 4)
 
 
 class Terrain(Achetable):
-    def __init__(self, nom, groupe, prix, maison, *loyers):
+    HOTEL = 5
+
+    def __init__(self, nom, code, groupe, prix, maison, *loyers):
         Achetable.__init__(self, nom, groupe, prix)
+        self.code = code  # GROUPE.MARRON par exemple
         self.loyers = loyers  # liste des loyers en fonction du niveau de construction
         self.maison = maison  # prix de construction d'une maison / hôtel
-        self.construction = 0  # par convention hotel = 5 maisons
+        self.niveau = 0  # par convention hotel = 5 maisons
 
     def construire(self):
-        if self.construction < 5:
+        if self.niveau < 5:
             self.bailleur.taxer(self.maison)
-            self.construction += 1
+            self.niveau += 1
 
     def loyer(self):
-        doubler = self.membre_d_un_monopole() and self.construction == 0
-        return self.loyers[self.construction] * (1 + doubler)
+        doubler = self.membre_d_un_monopole() and self.niveau == 0
+        return self.loyers[self.niveau] * (1 + doubler)
 
     def nettoyer(self):
         Achetable.nettoyer(self)
-        self.construction = 0
+        self.niveau = 0
 
     def __str__(self):
-        return "{:<30} | {:>4} | {:^6} |".format(self.nom, self.prix, self.construction)
+        return "{:<30} | {:>4} | {:^6} |".format(self.nom, self.prix, self.niveau)
 
+class Joueur(object):
+    def __init__(self, pseudo):
+        self.pseudo = pseudo
+        self.solvable = True  # n'a pas encore perdu
+        self.argent = 1500
+        self.position = Plateau.DEPART
+        self.chance_sortie = False # pourrait être une liste mais impossible d'en avoir deux
+        self.caisse_sortie = False
+        self.portefeuille = []
+        self.doubles_de_suite = 0
+
+    def resumer(self):
+        imprimer(colours.fg.cyan, self.pseudo, colours.reset, "solvable : ", self.solvable, "a", colours.fg.yellow, str(self.argent) + "€", colours.reset)
+
+    def tableau(self):
+        if len(self.portefeuille) == 0:
+            return ""
+        chaine = "\t{:<30} | {:>4} | {:^6} |".format("nom", "prix", "niveau")
+        for achetable in self.portefeuille:
+            chaine += "\n\t" + str(achetable)
+        return chaine
+
+    def compter_doubles(self, double):
+        self.doubles_de_suite = self.doubles_de_suite + 1 if double else 0
+        imprimer("\tnombre de double à la suite :", self.doubles_de_suite)
+        if self.doubles_de_suite == 3:
+            raise AllerEnPrison("Trois doubles de suite")
+
+    def reposer(self, chance=False, caisse=False): 
+        if chance:  # reposer les cartes chance
+            carte_chance, self.chance_sortie = self.chance_sortie, False
+            return carte_chance
+        if caisse: # reposer les cartes caisse
+            carte_caisse, self.caisse_sortie = self.caisse_sortie, False
+            return carte_caisse
+        # si rien n'est précisé, repose les deux : un peu crade mais pratique
+        carte_chance, self.chance_sortie = self.chance_sortie, False
+        carte_caisse, self.caisse_sortie = self.caisse_sortie, False
+        return carte_chance, carte_caisse
+
+    def nettoyer(self):
+        self.solvable = False
+        for achetable in self.portefeuille:
+            achetable.nettoyer()
+        return self.reposer()
+
+    def aller(self, position):
+        quotient, self.position = divmod(position, Plateau.TOTAL)
+        if quotient != 0:
+            self.argent += 200
+            imprimer("\ttouche", colours.fg.yellow, "200€", colours.reset, "en passant par la case du départ")
+
+    def taxer(self, montant):
+        imprimer("\tse fait taxer ", colours.fg.yellow, str(montant) + "€", colours.reset)
+        self.argent -= montant
+        # TODO : ajouter l'hypothèque, la vente à la banque, aux enchères...
+        if self.argent < 0:
+            raise NonSolvable
+
+    def donner(self, joueur, montant):
+        imprimer("\tdoit donner ", colours.fg.yellow, str(montant) + "€", colours.reset, "à", colours.fg.cyan, joueur.pseudo, colours.reset)
+        self.taxer(montant)
+        joueur.argent += montant
+
+    def payer_loyer(self, achetable, doubler=False):
+        joueur = achetable.bailleur
+        montant = achetable.loyer() * (1 + doubler)
+        imprimer("\tdoit payer un loyer de ", colours.fg.yellow, str(montant) + "€", colours.reset, "à", colours.fg.cyan, joueur.pseudo, colours.reset)
+        self.donner(joueur, montant)
+
+    def taxer_construction(self, maison, hotel):
+        montant = 0
+        for a in self.portefeuille:
+            try:
+                montant += hotel if a.niveau == Terrain.HOTEL else montant * a.niveau
+            except:
+                continue
+        self.taxer(montant)
+
+    def acheter(self, achetable):
+        imprimer("\tachète", achetable.nom)
+        self.taxer(achetable.prix)
+        achetable.bailleur = self
+        self.portefeuille.append(achetable)
+
+    def strategie_prison(self):
+        return True, True, False
+
+    def strategie_achat(self, achetable):
+        return True
 
 class Groupe(object):
     MARRON = 0
@@ -262,6 +247,40 @@ class Chance(object):
     COMPAGNIE_PLUS_PROCHE = 15
     TOTAL = 16
 
+    def afficher(carte):
+        if carte == Chance.SORTIE_DE_PRISON:
+            chaine = "Vous êtes libéré de prison."
+        elif carte == Chance.AVANCEZ_DEPART:
+            chaine = "Avancez jusqu'à la case départ"
+        elif carte == Chance.ALLEZ_EN_PRISON:
+            chaine = "Allez en prison !"
+        elif carte == Chance.RUE_DE_LA_PAIX:
+            chaine = "Avancez rue de la Paix"
+        elif carte == Chance.AVANCEZ_BOULEVARD_DE_LA_VILLETTE:
+            chaine = "Avancez Boulevard de la Villette"
+        elif carte == Chance.RENDEZ_VOUS_AVENUE_HENRI_MARTIN:
+            chaine = "Rendez vous avenue Henri-Martin"
+        elif carte == Chance.ALLEZ_GARE_MONTPARNASSE:
+            chaine = "Avancez jusqu'à la gare Montparnasse"
+        elif carte == Chance.RECULEZ_DE_TROIS_CASES:
+            chaine = "Reculez de 3 cases"
+        elif carte == Chance.DIVIDENDE:
+            chaine = "Recevez 50€ de dividendes"
+        elif carte == Chance.IMMEUBLE:
+            chaine = "Vos placements immobiliers vous rapportent 150€"
+        elif carte == Chance.EXCES_DE_VITESSE:
+            chaine = "Excès de vitesse : payez 15€"
+        elif carte == Chance.PRESIDENT:
+            chaine = "Vous êtes président : payez 50€ à chaque joueurs"
+        elif carte == Chance.REPARATION:
+            chaine = "Frais de réparations : payez 25€ par maison et 100€ par hôtel"
+        elif carte in Chance.GARE_PLUS_PROCHE:
+            chaine = "Allez à la gare la plus proche. Payer le loyer double"
+        elif carte == Chance.COMPAGNIE_PLUS_PROCHE:
+            chaine = "Allez à la gare la plus proche."
+        imprimer(colours.fg.red, "\t" + chaine, colours.reset)
+            
+
 
 class Caisse(object):
     SORTIE_DE_PRISON = 0
@@ -282,6 +301,40 @@ class Caisse(object):
     TRAVAUX = 15
     TOTAL = 16
 
+    def afficher(carte):
+        if carte == Caisse.SORTIE_DE_PRISON:
+            chaine = "Vous êtes libéré de prison."
+        elif carte == Caisse.AVANCEZ_DEPART:
+            chaine = "Avancez jusqu'à la case départ"
+        elif carte == Caisse.ALLEZ_EN_PRISON:
+            chaine = "Allez en prison !"
+        elif carte == Caisse.ASSURANCE_VIE:
+            chaine = "Votre assurance vie vous rapporte 100€"
+        elif carte == Caisse.IMPOTS:
+            chaine = "Erreur des impôts en votre faveur. Recevez 20€"
+        elif carte == Caisse.PLACEMENT:
+            chaine = "Vos placement vous rapportent 100€"
+        elif carte == Caisse.HERITAGE:
+            chaine = "Vous héritez de 100€"
+        elif carte == Caisse.BANQUE:
+            chaine = "Erreur de la banque en votre faveur. Recevez 200€"
+        elif carte == Caisse.BEAUTE:
+            chaine = "Vous remportez le prix de beauté. Recevez 10€"
+        elif carte == Caisse.EXPERT:
+            chaine = "Expert ? Recevez 25€"
+        elif carte == Caisse.STOCK:
+            chaine = "Vos actions vous rapportent 50€"
+        elif carte == Caisse.HOSPITALISATION:
+            chaine = "Payez 100€ de fraix d'hospitalisation"
+        elif carte == Caisse.MEDECIN:
+            chaine = "Payez 50€ de fraix de médecin"
+        elif carte == Caisse.SCOLARITE:
+            chaine = "Payez 50 € de fraix de scolarité"
+        elif carte == Caisse.ANNIVERSAIRE:
+            chaine = "C'est votre anniversaire. Recevez 10€ de la part de chaque joueur"
+        elif carte == Caisse.TRAVAUX:
+            chaine = "Travaux : payez 40€ par maison et 115€ par hôtel"
+        imprimer(colours.fg.lightblue, "\t" + chaine, colours.reset)
 
 class Plateau(object):
     DEPART = 0
@@ -311,28 +364,28 @@ class Plateau(object):
         self.groupes = [list() for _ in range(Groupe.TOTAL)]
         # fmt: off
         self.cases = [Case("Départ"),
-            Terrain("Boulevard de Belleville"  , self.groupes[Groupe.MARRON],  60,  50,  2,  10,  30,   90,  160,  250), Case("Caisse de communauté"),
-            Terrain("Rue Lecourbe"             , self.groupes[Groupe.MARRON],  60,  50,  4,  20,  60,  180,  320,  450), Case("Impôt sur le revenu"), Gare("Montparnasse", self.groupes[Groupe.GARE]),
-            Terrain("Rue Vaugirard"            , self.groupes[Groupe.GRIS  ], 100,  50,  6,  30,  90,  270,  400,  550), Case("Chance"),
-            Terrain("Rue de Courcelles"        , self.groupes[Groupe.GRIS  ], 100,  50,  6,  30,  90,  270,  400,  550),
-            Terrain("Avenue de la République"  , self.groupes[Groupe.GRIS  ], 120,  50,  8,  40, 100,  300,  450,  600), Case("Simple Visite"),
-            Terrain("Boulevard de la Villette" , self.groupes[Groupe.ROSE  ], 140, 100, 10,  50, 150,  450,  625,  750), Compagnie("éléctricité", self.groupes[Groupe.COMPAGNIE], self.somme),
-            Terrain("Avenue de Neuilly"        , self.groupes[Groupe.ROSE  ], 140, 100, 10,  50, 150,  450,  625,  750),
-            Terrain("Rue de Paradis"           , self.groupes[Groupe.ROSE  ], 160, 100, 12,  60, 180,  500,  700,  900), Gare("de Lyon", self.groupes[Groupe.GARE]),
-            Terrain("Avenue Mozart"            , self.groupes[Groupe.ORANGE], 180, 100, 14,  70, 200,  550,  750,  950), Case("Caisse de communauté"),
-            Terrain("Boulevard Saint-Michel"   , self.groupes[Groupe.ORANGE], 180, 100, 14,  70, 200,  550,  750,  950),
-            Terrain("Place Pigalle"            , self.groupes[Groupe.ORANGE], 200, 100, 16,  80, 220,  600,  800, 1000), Case("Parc gratuit"),
-            Terrain("Avenue Matignon"          , self.groupes[Groupe.ROUGE ], 220, 150, 18,  90, 250,  700,  875, 1050), Case("Chance"),
-            Terrain("Boulevard Malesherbes"    , self.groupes[Groupe.ROUGE ], 220, 150, 18,  90, 250,  700,  875, 1050),
-            Terrain("Avenue Henri-Martin"      , self.groupes[Groupe.ROUGE ], 240, 150, 20, 100, 300,  750,  925, 1100), Gare("du Nord", self.groupes[Groupe.GARE]),
-            Terrain("Faubourg Saint-Honoré"    , self.groupes[Groupe.JAUNE ], 260, 150, 22, 110, 330,  800,  975, 1150),
-            Terrain("Place de la bourse"       , self.groupes[Groupe.JAUNE ], 260, 150, 22, 110, 330,  800,  975, 1150), Compagnie("eaux", self.groupes[Groupe.COMPAGNIE], self.somme),
-            Terrain("Rue la Fayette"           , self.groupes[Groupe.JAUNE ], 280, 150, 24, 120, 360,  850, 1025, 1200), Case("Allez en prison"),
-            Terrain("Avenue de Breteuil"       , self.groupes[Groupe.VERT  ], 300, 200, 26, 130, 390,  900, 1100, 1275),
-            Terrain("Avenue Foch"              , self.groupes[Groupe.VERT  ], 300, 200, 26, 130, 390,  900, 1100, 1275), Case("Caisse de communauté"),
-            Terrain("Boulevard des Capucines"  , self.groupes[Groupe.VERT  ], 320, 200, 28, 150, 450, 1000, 1200, 1400), Gare("Saint-Lazare", self.groupes[Groupe.GARE]), Case("Chance"),
-            Terrain("Avenue des Champs-Élysées", self.groupes[Groupe.BLEU  ], 350, 200, 35, 175, 500, 1100, 1300, 1500), Case("Taxe de luxe"),
-            Terrain("Rue de la paix"           , self.groupes[Groupe.BLEU  ], 400, 200, 50, 200, 600, 1400, 1700, 2000),
+Terrain("Boulevard de Belleville"  , Groupe.MARRON, self.groupes[Groupe.MARRON],  60,  50,  2,  10,  30,   90,  160,  250), Case("Caisse de communauté"),
+Terrain("Rue Lecourbe"             , Groupe.MARRON, self.groupes[Groupe.MARRON],  60,  50,  4,  20,  60,  180,  320,  450), Case("Impôt sur le revenu"), Gare("Montparnasse", self.groupes[Groupe.GARE]),
+Terrain("Rue Vaugirard"            , Groupe.GRIS  , self.groupes[Groupe.GRIS  ], 100,  50,  6,  30,  90,  270,  400,  550), Case("Chance"),
+Terrain("Rue de Courcelles"        , Groupe.GRIS  , self.groupes[Groupe.GRIS  ], 100,  50,  6,  30,  90,  270,  400,  550),
+Terrain("Avenue de la République"  , Groupe.GRIS  , self.groupes[Groupe.GRIS  ], 120,  50,  8,  40, 100,  300,  450,  600), Case("Simple Visite"),
+Terrain("Boulevard de la Villette" , Groupe.ROSE  , self.groupes[Groupe.ROSE  ], 140, 100, 10,  50, 150,  450,  625,  750), Compagnie("éléctricité", self.groupes[Groupe.COMPAGNIE], self.somme),
+Terrain("Avenue de Neuilly"        , Groupe.ROSE  , self.groupes[Groupe.ROSE  ], 140, 100, 10,  50, 150,  450,  625,  750),
+Terrain("Rue de Paradis"           , Groupe.ROSE  , self.groupes[Groupe.ROSE  ], 160, 100, 12,  60, 180,  500,  700,  900), Gare("de Lyon", self.groupes[Groupe.GARE]),
+Terrain("Avenue Mozart"            , Groupe.ORANGE, self.groupes[Groupe.ORANGE], 180, 100, 14,  70, 200,  550,  750,  950), Case("Caisse de communauté"),
+Terrain("Boulevard Saint-Michel"   , Groupe.ORANGE, self.groupes[Groupe.ORANGE], 180, 100, 14,  70, 200,  550,  750,  950),
+Terrain("Place Pigalle"            , Groupe.ORANGE, self.groupes[Groupe.ORANGE], 200, 100, 16,  80, 220,  600,  800, 1000), Case("Parc gratuit"),
+Terrain("Avenue Matignon"          , Groupe.ROUGE , self.groupes[Groupe.ROUGE ], 220, 150, 18,  90, 250,  700,  875, 1050), Case("Chance"),
+Terrain("Boulevard Malesherbes"    , Groupe.ROUGE , self.groupes[Groupe.ROUGE ], 220, 150, 18,  90, 250,  700,  875, 1050),
+Terrain("Avenue Henri-Martin"      , Groupe.ROUGE , self.groupes[Groupe.ROUGE ], 240, 150, 20, 100, 300,  750,  925, 1100), Gare("du Nord", self.groupes[Groupe.GARE]),
+Terrain("Faubourg Saint-Honoré"    , Groupe.JAUNE , self.groupes[Groupe.JAUNE ], 260, 150, 22, 110, 330,  800,  975, 1150),
+Terrain("Place de la bourse"       , Groupe.JAUNE , self.groupes[Groupe.JAUNE ], 260, 150, 22, 110, 330,  800,  975, 1150), Compagnie("eaux", self.groupes[Groupe.COMPAGNIE], self.somme),
+Terrain("Rue la Fayette"           , Groupe.JAUNE , self.groupes[Groupe.JAUNE ], 280, 150, 24, 120, 360,  850, 1025, 1200), Case("Allez en prison"),
+Terrain("Avenue de Breteuil"       , Groupe.VERT  , self.groupes[Groupe.VERT  ], 300, 200, 26, 130, 390,  900, 1100, 1275),
+Terrain("Avenue Foch"              , Groupe.VERT  , self.groupes[Groupe.VERT  ], 300, 200, 26, 130, 390,  900, 1100, 1275), Case("Caisse de communauté"),
+Terrain("Boulevard des Capucines"  , Groupe.VERT  , self.groupes[Groupe.VERT  ], 320, 200, 28, 150, 450, 1000, 1200, 1400), Gare("Saint-Lazare", self.groupes[Groupe.GARE]), Case("Chance"),
+Terrain("Avenue des Champs-Élysées", Groupe.BLEU  , self.groupes[Groupe.BLEU  ], 350, 200, 35, 175, 500, 1100, 1300, 1500), Case("Taxe de luxe"),
+Terrain("Rue de la paix"           , Groupe.BLEU  , self.groupes[Groupe.BLEU  ], 400, 200, 50, 200, 600, 1400, 1700, 2000),
         ]
         # fmt: on
         random.shuffle(self.chance)
@@ -341,7 +394,7 @@ class Plateau(object):
     def lancer(self):
         self.de_1 = random.randint(1, 6)
         self.de_2 = random.randint(1, 6)
-        # print("Lancer de dés : %d %d" % (self.de_1, self.de_2))
+        imprimer("\tlancer de dés : %d %d" % (self.de_1, self.de_2))
 
     def somme(self):
         return self.de_1 + self.de_2
@@ -349,236 +402,181 @@ class Plateau(object):
     def double(self):
         return self.de_1 == self.de_2
 
-    def autres(self, joueur):
+    def autres(self, joueur=None):
         for j in self.joueurs:
-            if j is not joueur:
+            if j.solvable and j is not joueur:
                 yield j
 
-    def gare_la_plus_proche(self, joueur):
-        if Plateau.GARE_MONTPARNASSE <= joueur.position < Plateau.GARE_DE_LYON:
-            joueur.aller(Plateau.GARE_DE_LYON, self)
-        elif Plateau.GARE_DE_LYON <= joueur.position < Plateau.GARE_DU_NORD:
-            joueur.aller(Plateau.GARE_DU_NORD, self)
-        elif Plateau.GARE_DU_NORD <= joueur.position < Plateau.GARE_SAINT_LAZARE:
-            joueur.aller(Plateau.GARE_SAINT_LAZARE, self)
-        else:
-            joueur.aller(Plateau.GARE_MONTPARNASSE, self)
-        return self.cases[joueur.position]
+    def gare_la_plus_proche(self, position):
+        if Plateau.GARE_MONTPARNASSE <= position < Plateau.GARE_DE_LYON:
+            return Plateau.GARE_DE_LYON
+        elif Plateau.GARE_DE_LYON <= position < Plateau.GARE_DU_NORD:
+            return Plateau.GARE_DU_NORD
+        elif Plateau.GARE_DU_NORD <= position < Plateau.GARE_SAINT_LAZARE:
+            return Plateau.GARE_SAINT_LAZARE
+        return Plateau.GARE_MONTPARNASSE
 
-    def compagnie_la_plus_proche(self, joueur):
-        if Plateau.COMPAGNIE_D_ELECTRICITE <= joueur.position < Plateau.COMPAGNIE_D_EAU:
-            joueur.aller(Plateau.COMPAGNIE_D_EAU)
-        else:
-            joueur.aller(Plateau.COMPAGNIE_D_ELECTRICITE)
-        return self.cases[joueur.position]
+    def compagnie_la_plus_proche(self, position):
+        if Plateau.COMPAGNIE_D_ELECTRICITE <= position < Plateau.COMPAGNIE_D_EAU:
+            return Plateau.COMPAGNIE_D_EAU
+        return Plateau.COMPAGNIE_D_ELECTRICITE
 
     def gerer_carte_chance(self, joueur):
         carte = self.chance.pop(0)
+        Chance.afficher(carte)
         if carte == Chance.SORTIE_DE_PRISON:
-            # print(strRed("\tsortie de prison"))
-            joueur.chance_sortie = True
+            joueur.chance_sortie = True  # ajoute la carte à la main du joueur
         else:
-            self.chance.append(carte)
+            self.chance.append(carte)  # repose la carte dans la pile
             if carte == Chance.AVANCEZ_DEPART:
-                joueur.aller(Plateau.DEPART, self)
+                joueur.aller(Plateau.DEPART)
             elif carte == Chance.ALLEZ_EN_PRISON:
-                joueur.aller_en_prison()
-                return
-            elif carte == Chance.RUE_DE_LA_PAIX:
-                joueur.aller(Plateau.RUE_DE_LA_PAIX, self)
-            elif carte == Chance.AVANCEZ_BOULEVARD_DE_LA_VILLETTE:
-                joueur.aller(Plateau.BOULEVARD_DE_LA_VILLETTE, self)
-            elif carte == Chance.RENDEZ_VOUS_AVENUE_HENRI_MARTIN:
-                joueur.aller(Plateau.AVENUE_HENRI_MARTIN, self)
-            elif carte == Chance.ALLEZ_GARE_MONTPARNASSE:
-                joueur.aller(Plateau.GARE_MONTPARNASSE, self)
-            elif carte == Chance.RECULEZ_DE_TROIS_CASES:
-                # print(strRed("\tReculer de 3 cases"))
-                joueur.aller(joueur.position - 3)
+                raise AllerEnPrison
             elif carte == Chance.DIVIDENDE:
-                # print(strRed("\tdividendes de 50€"))
                 joueur.argent += 50
             elif carte == Chance.IMMEUBLE:
-                # print(strRed("\tplacements immobiliers rapportent 150€"))
                 joueur.argent += 150
             elif carte == Chance.EXCES_DE_VITESSE:
-                # print(strRed("\texcès de vitesse : payer 15€"))
                 joueur.taxer(15)
             elif carte == Chance.PRESIDENT:
-                # print(strRed("\tprésident payer 50€ à chaque joueurs"))
                 for j in self.autres(joueur):
-                    joueur.payer(50, j)
+                    joueur.donner(j, 50)
             elif carte == Chance.REPARATION:
-                # print(strRed("\tréparations : payer 25€ par maison et 100€ par hôtel"))
-                joueur.taxer_constructions(25, 100)
+                joueur.taxer_construction(25, 100)
+            elif carte == Chance.RUE_DE_LA_PAIX:
+                joueur.aller(Plateau.RUE_DE_LA_PAIX)
+            elif carte == Chance.AVANCEZ_BOULEVARD_DE_LA_VILLETTE:
+                joueur.aller(Plateau.BOULEVARD_DE_LA_VILLETTE)
+            elif carte == Chance.RENDEZ_VOUS_AVENUE_HENRI_MARTIN:
+                joueur.aller(Plateau.AVENUE_HENRI_MARTIN)
+            elif carte == Chance.ALLEZ_GARE_MONTPARNASSE:
+                joueur.aller(Plateau.GARE_MONTPARNASSE)
+            elif carte == Chance.RECULEZ_DE_TROIS_CASES:
+                joueur.aller(joueur.position - 3)
             elif carte in Chance.GARE_PLUS_PROCHE:
-                # print(strRed("\taller à la gare la plus proche, doubler le loyer"))
-                gare = self.gare_la_plus_proche(joueur)
-                joueur.payer_loyer(gare, doubler=True)
+                joueur.aller(self.gare_la_plus_proche(joueur.position))
+                return True
             elif carte == Chance.COMPAGNIE_PLUS_PROCHE:
-                # print(strRed("\taller à la compagnie la plus proche, doubler le loyer"))
-                compagnie = self.compagnie_la_plus_proche(joueur)
-                joueur.payer_loyer(compagnie, doubler=True)
+                joueur.aller(self.compagnie_la_plus_proche(joueur.position))
+                return True
+        return False
 
     def gerer_carte_caisse(self, joueur):
         carte = self.caisse.pop(0)
-        if carte == Chance.SORTIE_DE_PRISON:
-            # print(strCyan("\tsortie de prison"))
-            joueur.caisse_sortie = True
+        Caisse.afficher(carte)
+        if carte == Caisse.SORTIE_DE_PRISON:
+            joueur.caisse_sortie = True  # ajoute la carte à la main du joueur
         else:
-            self.caisse.append(carte)
+            self.caisse.append(carte)  # repose la carte dans la pile
             if carte == Caisse.AVANCEZ_DEPART:
-                joueur.aller(Plateau.DEPART, self)
+                joueur.aller(Plateau.DEPART)
             elif carte == Caisse.ALLEZ_EN_PRISON:
-                return joueur.aller_en_prison()
+                raise AllerEnPrison
             elif carte == Caisse.ASSURANCE_VIE:
                 joueur.argent += 100
-                # print(strCyan("\tassurance vie recevez 100€"))
             elif carte == Caisse.IMPOTS:
                 joueur.argent += 20
-                # print(strCyan("\terreur des impôts en votre faveur recevez 20€"))
             elif carte == Caisse.PLACEMENT:
                 joueur.argent += 100
-                # print(strCyan("\tvos placement vous rapportent 100€"))
             elif carte == Caisse.HERITAGE:
                 joueur.argent += 100
-                # print(strCyan("\théritez de 100€"))
             elif carte == Caisse.BANQUE:
                 joueur.argent += 200
-                # print(strCyan("\terreur de la banque en votre faveur recevez 200€"))
             elif carte == Caisse.BEAUTE:
                 joueur.argent += 10
-                # print(strCyan("\tbeauté de 10€"))
             elif carte == Caisse.EXPERT:
                 joueur.argent += 25
-                # print(strCyan("\texpert 25€"))
             elif carte == Caisse.STOCK:
                 joueur.argent += 50
-                # print(strCyan("\tactions 50€"))
             elif carte == Caisse.HOSPITALISATION:
                 joueur.taxer(100)
-                # print(strCyan("\thospitalisation payer 100€"))
             elif carte == Caisse.MEDECIN:
                 joueur.taxer(50)
-                # print(strCyan("\tmédecin payer 50€"))
             elif carte == Caisse.SCOLARITE:
                 joueur.taxer(50)
-                # print(strCyan("\tscolarité payer 50€"))
             elif carte == Caisse.ANNIVERSAIRE:
-                # fmt: off
-                # print(strCyan("\tc'est votre anniversaire recevez 10€ de chaque joueur"))
-                # fmt: on
                 for j in self.autres(joueur):
-                    j.payer(10, joueur)
+                    j.donner(joueur, 10)
             elif carte == Caisse.TRAVAUX:
-                # print(strCyan("\ttravaux : payez 40€ par maison et 115€ par hôtel"))
-                joueur.taxer_constructions(40, 115)
+                joueur.taxer_construction(40, 115)
 
-    def gerer_la_prison(self, joueur):
-        if joueur.tours_en_prison <= 3:
+    def gerer_prison(self, joueur):
+        if joueur.compter_doubles(self.double()) == 3:
+            raise AllerEnPrison
+        if joueur.position != Plateau.PRISON:
+            return  # hors de prison
+        if joueur.tours_en_prison == 1:
             veut_chance, veut_caisse, veut_taxe = joueur.strategie_prison()
-            if veut_chance and joueur.chance_sortie:
-                joueur.reposer_chance(plateau)
-            elif veut_caisse and joueur.caisse_sortie:
-                joueur.reposer_caisse(plateau)
+            if veut_chance and joueur.reposer(chance=True):
+                self.chance.append(Chance.SORTIE_DE_PRISON)
+            elif veut_caisse and joueur.reposer(caisse=True):
+                self.caisse.append(Caisse.SORTIE_DE_PRISON)
             elif veut_taxe and joueur.argent >= 50:
                 joueur.taxer(50)
             elif not self.double():
-                joueur.tours_en_prison += 1
-                return
+                raise ResterEnPrison
+        elif joueur.tours_en_prison <= 3:
+            if not self.double():
+                raise ResterEnPrison
         else:
             joueur.taxer(50)
-        joueur.sortir_de_prison()
-        return self.milieu_tour(joueur)
+        # sortir de prison
+        joueur.position = Plateau.SIMPLE_VISITE
+        joueur.doubles_de_suite = 0 # TODO : vérifier les règles...
 
     def debut_tour(self, joueur):
         self.lancer()
+        self.gerer_prison(joueur)
+        joueur.aller(joueur.position + self.somme())
+        # Cases spéciales
+        doubler = False
         if joueur.position == Plateau.PRISON:
-            return self.gerer_la_prison(joueur)
-        elif joueur.compter_doubles(self.double()) == 3:
-            return joueur.aller_en_prison()
-        return self.milieu_tour(joueur)
-
-    def milieu_tour(self, joueur):
-        joueur.aller(joueur.position + self.somme(), self)
-        case = self.cases[joueur.position]
-        if joueur.position == Plateau.PRISON:
-            return joueur.aller_en_prison()
+            raise AllerEnPrison
         elif joueur.position in Plateau.CHANCE:
-            return self.gerer_carte_chance(joueur)
+            doubler = self.gerer_carte_chance(joueur)  # peut doubler le loyer
         elif joueur.position in Plateau.CAISSE:
-            return self.gerer_carte_caisse(joueur)
+            self.gerer_carte_caisse(joueur)
         elif joueur.position == Plateau.IMPOTS_SUR_LE_REVENU:
             joueur.taxer(200)
         elif joueur.position == Plateau.TAXE_DE_LUXE:
             joueur.taxer(100)
-        elif isinstance(case, Achetable):
-            if not joueur.payer_loyer(case):
+        case = self.cases[joueur.position]
+        imprimer("\t-->", case.nom)
+        # Cases normales
+        if isinstance(case, Achetable):
+            if case.bailleur is None:  # terrain achetable
                 veut_acheter = joueur.strategie_achat(case)
                 if veut_acheter and joueur.argent >= case.prix:
                     joueur.acheter(case)
+            elif case.bailleur is not self:  # terrain possédé par un autre joueur
+                joueur.payer_loyer(case)                
 
     def fin_tour(self, joueur):
-        pass  # TODO : ajoueter les échanges entre joueurs
+        pass  # TODO : ajouter les échanges entre joueurs
 
     def faire_jouer(self, joueur):
-        if not joueur.solvable:
-            return
+        joueur.resumer()
         try:
-            # print(joueur.resumer(plateau))
             self.debut_tour(joueur)
             self.fin_tour(joueur)
-        except:
-            joueur.nettoyer(self)
+        except NonSolvable:
+            carte_chance, carte_caisse = joueur.nettoyer()
+            if carte_chance:
+                self.chance.append(Chance.SORTIE_DE_PRISON)
+            if carte_caisse:
+                self.caisse.append(Caisse.SORTIE_DE_PRISON)
+        except AllerEnPrison:
+            joueur.position = Plateau.PRISON
+            joueur.tours_en_prison = 1
+            joueur.doubles_de_suite = 0  # TODO : vérifier les règles
+        except ResterEnPrison:
+            joueur.tours_en_prison += 1
+        except Exception as err:
+            raise err
 
     def tour(self):
-        for joueur in self.joueurs:
+        nombre = 0
+        for joueur in self.autres():
             self.faire_jouer(joueur)
-        return sum([joueur.solvable for joueur in self.joueurs]) > 1
-
-
-JOUEURS = 3
-PARTIES = 100
-TOURS = 500
-
-if False:
-    joueurs = [Joueur("toto" + str(j)) for j in range(JOUEURS)]
-    plateau = Plateau(*joueurs)
-    for t in range(TOURS):
-        poursuivre = plateau.tour()
-        if not poursuivre:
-            print("FIIIIIIIIIIIIIIIIIIIIN")
-            break
-    for joueur in joueurs:
-        print(joueur.resumer(plateau, details=True))
-else:
-    argent = [[[] for j in range(JOUEURS)] for p in range(PARTIES)]
-    for p in range(PARTIES):
-        joueurs = [Joueur("toto" + str(j), (j+1)/(JOUEURS+1)) for j in range(JOUEURS)]
-        plateau = Plateau(*joueurs)
-        for t in range(TOURS):
-            poursuivre = plateau.tour()
-            for j, joueur in enumerate(plateau.joueurs):
-                argent[p][j].append(joueur.argent)
-            if not poursuivre:
-                break
-
-    import matplotlib.pyplot as plt
-
-    colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-
-    plt.figure()
-    for p in range(PARTIES):
-        for j in range(JOUEURS):
-            plt.plot(
-                argent[p][j],
-                color=colours[j],
-                linewidth=4,
-                alpha=0.1,
-                label="θ" + str(j + 1) if p == 0 else None,
-            )
-
-    for e in plt.legend().legendHandles:
-        e.set_alpha(1)
-    plt.grid()
-    plt.show()
+            nombre += 1 # un joueur solvable
+        return nombre > 1
